@@ -27,4 +27,5 @@ Changelog label: v 1.0.1
 - Added local release tooling for version checks and GitHub commit review.
 - Applied D1 migrations `0001_identity_foundation.sql` and `0002_admin_console.sql` to the production database.
 - Deployed Worker version `22384b0a-9dbc-4497-ac17-0d2fde43dfd8` to `secure.techmedia.in`.
-- Added the production `OTP_HMAC_KEY` secret. Email OTP stays unavailable until `RESEND_API_KEY` is configured.
+- Added the production `OTP_HMAC_KEY` secret. Email OTP remains unavailable until the Cloudflare sending domain is onboarded.
+- Replaced the Resend API integration with the native Cloudflare Email Service binding. The sender is restricted to `otp@auth.techmedia.in`.

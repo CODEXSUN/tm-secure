@@ -25,5 +25,11 @@
 			"database_id": "7a6a42d6-3184-49a2-9970-70bf5ee592ab",
 			"migrations_dir": "./migrations"
 		}
+	],
+	"send_email": [
+		{
+			"name": "EMAIL",
+			"allowed_sender_addresses": ["otp@auth.techmedia.in"]
+		}
 	]
 }

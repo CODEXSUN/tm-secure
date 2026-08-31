@@ -1,6 +1,5 @@
 # Copy this file to .dev.vars for local development.
 # Never use production credentials in local development.
 OTP_HMAC_KEY=generate-a-long-random-development-secret
-RESEND_API_KEY=re_your_resend_development_key
 NODE_ENV=development
 AUTH_BYPASS_ENABLED=true
