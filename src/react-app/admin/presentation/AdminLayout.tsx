@@ -3,7 +3,7 @@ import type { AdminPage, AdminPrincipal } from "../domain/types";
 import { humanize } from "./format";
 
 const pages: Array<{ id: AdminPage; label: string }> = [
-	{ id: "overview", label: "Overview" }, { id: "users", label: "Users & approvals" }, { id: "applications", label: "Applications" },
+	{ id: "overview", label: "Overview" }, { id: "users", label: "Users & approvals" }, { id: "verification-codes", label: "Verification codes" }, { id: "applications", label: "Applications" },
 	{ id: "devices", label: "Devices" }, { id: "sessions", label: "Browser sessions" }, { id: "audit", label: "Audit log" }, { id: "settings", label: "Security settings" },
 ];
 

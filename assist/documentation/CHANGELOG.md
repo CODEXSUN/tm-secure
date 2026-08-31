@@ -2,11 +2,26 @@
 
 ## Version State
 
-Current version: 1.0.2
+Current version: 1.0.3
 
-Release tag: v-1.0.2
+Release tag: v-1.0.3
 
-Changelog label: v 1.0.2
+Changelog label: v 1.0.3
+
+## v-1.0.3
+
+### [v 1.0.3] 2026-09-01 - Manual administrator OTP verification
+
+#### Database Changes
+
+- Added migration `0003_manual_admin_otp.sql` for administrator-issued verification codes.
+
+#### App Codebase Changes
+
+- Removed the Hostinger SMTP client, configuration, and Cloudflare Email setup.
+- Added the `/admin/verification-codes` page. It accepts a pending identity and shows one 10-minute code for the administrator to share.
+- Added the separate `/verify` page. Users verify with their mobile number, email, or username and the administrator-issued code.
+- Added audit events for manual code issuance and verification.
 
 ## v-1.0.2
 

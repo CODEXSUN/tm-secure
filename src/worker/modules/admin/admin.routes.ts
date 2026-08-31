@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { AdminAuthService, type AdminPrincipal } from "./admin-auth.service";
+import { ManualOtpService } from "../auth/manual-otp.service";
 
 const ADMIN_COOKIE = "tm_secure_admin";
 type Variables = { admin: AdminPrincipal };
@@ -76,6 +77,26 @@ adminRoutes.patch("/users/:id/approval", async (c) => {
 	]);
 	await new AdminAuthService(c.env).audit(c.get("admin").id, "BUSINESS_PROFILE_STATUS_CHANGED", c.req.raw, { userId: c.req.param("id"), status: body.status });
 	return c.json({ updated: true });
+});
+
+adminRoutes.get("/verification-codes", async (c) => {
+	const result = await c.env.tm_secure_db.prepare("SELECT u.id, u.status, u.created_at AS createdAt, bp.approval_status AS approvalStatus, MAX(CASE WHEN i.type = 'MOBILE' THEN i.display_value END) AS mobile, MAX(CASE WHEN i.type = 'EMAIL' THEN i.display_value END) AS email, MAX(CASE WHEN i.type = 'USERNAME' THEN i.display_value END) AS username FROM users u JOIN business_profiles bp ON bp.user_id = u.id LEFT JOIN user_identifiers i ON i.user_id = u.id WHERE u.status IN ('PENDING_ADMIN_APPROVAL', 'ACTIVE') GROUP BY u.id ORDER BY CASE u.status WHEN 'PENDING_ADMIN_APPROVAL' THEN 0 ELSE 1 END, u.created_at DESC LIMIT 200").all();
+	return c.json({ users: result.results });
+});
+
+adminRoutes.post("/verification-codes/:id", async (c) => {
+	const user = await c.env.tm_secure_db.prepare("SELECT u.id, u.status, i.normalized_value AS mobile FROM users u JOIN user_identifiers i ON i.user_id = u.id AND i.type = 'MOBILE' WHERE u.id = ? AND u.status IN ('PENDING_ADMIN_APPROVAL', 'ACTIVE')").bind(c.req.param("id")).first<{ id: string; status: string; mobile: string }>();
+	if (!user) return c.json({ error: "This identity cannot receive a verification code." }, 404);
+	const now = new Date().toISOString();
+	if (user.status === "PENDING_ADMIN_APPROVAL") {
+		await c.env.tm_secure_db.batch([
+			c.env.tm_secure_db.prepare("UPDATE users SET status = 'ACTIVE', updated_at = ? WHERE id = ?").bind(now, user.id),
+			c.env.tm_secure_db.prepare("UPDATE business_profiles SET approval_status = 'APPROVED', approved_by = ?, approved_at = ?, updated_at = ? WHERE user_id = ?").bind(c.get("admin").id, now, now, user.id),
+		]);
+	}
+	const issued = await new ManualOtpService(c.env).issue(user.id, user.mobile);
+	await new AdminAuthService(c.env).audit(c.get("admin").id, "MANUAL_OTP_ISSUED", c.req.raw, { userId: user.id, expiresAt: issued.expiresAt });
+	return c.json(issued, 201);
 });
 
 adminRoutes.get("/applications", async (c) => {

@@ -6,7 +6,7 @@ import { Input } from "@/react-app/components/ui/input";
 import { Label } from "@/react-app/components/ui/label";
 import { Check, LoaderCircle } from "lucide-react";
 
-type View = "SIGN_IN" | "ENROLL" | "VERIFY" | "ACCOUNT";
+type View = "SIGN_IN" | "ENROLL" | "VERIFY" | "PENDING" | "ACCOUNT";
 interface ApiError { error?: string }
 type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
 interface AccountSession { authenticated: boolean; approvalStatus?: ApprovalStatus }
@@ -17,14 +17,12 @@ function App() {
 }
 
 function PublicPortal() {
-	const [view, setView] = useState<View>("SIGN_IN");
+	const [view, setView] = useState<View>(() => window.location.pathname === "/verify" ? "VERIFY" : "SIGN_IN");
 	const [identifier, setIdentifier] = useState("");
 	const [mobile, setMobile] = useState("");
 	const [email, setEmail] = useState("");
 	const [username, setUsername] = useState("");
 	const [otp, setOtp] = useState("");
-	const [challengeId, setChallengeId] = useState("");
-	const [destination, setDestination] = useState("");
 	const [message, setMessage] = useState("");
 	const [pending, setPending] = useState(false);
 	const [developmentBypass, setDevelopmentBypass] = useState(false);
@@ -39,24 +37,21 @@ function PublicPortal() {
 
 	async function requestLogin(event: FormEvent) {
 		event.preventDefault();
-		await run(async () => {
-			const result = await post<{ challengeId?: string; destination?: string; message?: string }>("/api/v1/auth/otp/request", { identifier });
-			if (!result.challengeId) { setMessage(result.message ?? "If the account exists, a code will be sent."); return; }
-			setChallengeId(result.challengeId); setDestination(result.destination ?? "your verified email"); setView("VERIFY");
-		});
+		window.history.pushState({}, "", "/verify");
+		setIdentifier(""); setView("VERIFY");
 	}
 
 	async function requestEnrollment(event: FormEvent) {
 		event.preventDefault();
 		await run(async () => {
-			const result = await post<{ challengeId: string; destination: string }>("/api/v1/auth/enrollment/request", { mobile, email, username });
-			setChallengeId(result.challengeId); setDestination(result.destination); setView("VERIFY");
+			await post("/api/v1/auth/enrollment/request", { mobile, email, username });
+			setView("PENDING");
 		});
 	}
 
 	async function verifyOtp(event: FormEvent) {
 		event.preventDefault();
-		await run(async () => { const result = await post<AccountSession>("/api/v1/auth/otp/verify", { challengeId, otp }); setApprovalStatus(result.approvalStatus ?? "PENDING"); setView("ACCOUNT"); });
+		await run(async () => { const result = await post<AccountSession>("/api/v1/auth/otp/verify", { identifier, otp }); setApprovalStatus(result.approvalStatus ?? "PENDING"); setView("ACCOUNT"); });
 	}
 
 	async function bypassLogin() {
@@ -73,9 +68,10 @@ function PublicPortal() {
 		<header className="flex h-16 items-center border-b border-neutral-200 bg-white px-5 sm:px-8"><div className="flex items-center gap-3"><img className="h-8 w-9 object-contain" src="/logo.svg" alt="Tech Media"/><span className="text-base font-semibold tracking-tight">Tech Media</span></div></header>
 		<main className="flex flex-1 items-center justify-center p-5 sm:p-8">
 			<Card className="w-full max-w-md border-neutral-200 shadow-none" aria-live="polite">
-				{view === "SIGN_IN" && <><CardHeader><CardTitle className="text-2xl tracking-tight">Sign in</CardTitle><CardDescription>Use your 10-digit mobile number, verified email, or username. We will send the code by email.</CardDescription></CardHeader><CardContent><form className="grid gap-5" onSubmit={requestLogin}><div className="grid gap-2"><Label htmlFor="identifier">Account identifier</Label><Input id="identifier" autoFocus value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="9876543210" required/></div><Button disabled={pending}>{pending && <LoaderCircle className="size-4 animate-spin"/>}{pending ? "Sending code" : "Continue"}</Button><Button variant="ghost" type="button" onClick={() => setView("ENROLL")}>Create an account</Button>{developmentBypass && <div className="grid gap-3 border-t pt-5"><span className="text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">Development only</span><Button variant="outline" type="button" disabled={pending} onClick={() => void bypassLogin()}>Continue without OTP</Button></div>}</form></CardContent></>}
-				{view === "ENROLL" && <><CardHeader><CardTitle className="text-2xl tracking-tight">Create your account</CardTitle><CardDescription>Your business profile activates after administrator confirmation. Verification codes are sent by email.</CardDescription></CardHeader><CardContent><form className="grid gap-5" onSubmit={requestEnrollment}><div className="grid gap-2"><Label htmlFor="mobile">Mobile number</Label><div className="flex"><span className="flex h-10 items-center rounded-l-md border border-r-0 border-input bg-neutral-100 px-3 text-sm text-muted-foreground">+91</span><Input id="mobile" className="rounded-l-none" inputMode="numeric" autoComplete="tel-national" pattern="[6-9][0-9]{9}" minLength={10} maxLength={10} value={mobile} onChange={(event) => setMobile(event.target.value.replace(/\D/gu, "").slice(0, 10))} placeholder="9876543210" required/></div></div><div className="grid gap-2"><Label htmlFor="email">Email address</Label><Input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" required/></div><div className="grid gap-2"><Label htmlFor="username">Username</Label><Input id="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="vijay" required/></div><Button disabled={pending || mobile.length !== 10}>{pending && <LoaderCircle className="size-4 animate-spin"/>}{pending ? "Creating account" : "Verify email"}</Button><Button variant="ghost" type="button" onClick={() => setView("SIGN_IN")}>Return to sign in</Button></form></CardContent></>}
-				{view === "VERIFY" && <><CardHeader><CardTitle className="text-2xl tracking-tight">Enter your code</CardTitle><CardDescription>We sent a six-digit code to <strong className="font-medium text-foreground">{destination}</strong>. It expires in 10 minutes.</CardDescription></CardHeader><CardContent><form className="grid gap-5" onSubmit={verifyOtp}><div className="grid gap-2"><Label htmlFor="otp">Verification code</Label><Input id="otp" className="h-12 text-center text-xl font-semibold tracking-[.35em]" inputMode="numeric" autoComplete="one-time-code" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/gu, "").slice(0, 6))} placeholder="000000" required/></div><Button disabled={pending || otp.length !== 6}>{pending && <LoaderCircle className="size-4 animate-spin"/>}{pending ? "Verifying" : "Verify and continue"}</Button><Button variant="ghost" type="button" onClick={() => setView("SIGN_IN")}>Cancel</Button></form></CardContent></>}
+				{view === "SIGN_IN" && <><CardHeader><CardTitle className="text-2xl tracking-tight">Sign in</CardTitle><CardDescription>Use the six-digit verification code issued by your administrator.</CardDescription></CardHeader><CardContent><form className="grid gap-5" onSubmit={requestLogin}><div className="grid gap-2"><Label htmlFor="identifier">Account identifier</Label><Input id="identifier" autoFocus value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="9876543210" required/></div><Button>Enter verification code</Button><Button variant="ghost" type="button" onClick={() => setView("ENROLL")}>Create an account</Button>{developmentBypass && <div className="grid gap-3 border-t pt-5"><span className="text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">Development only</span><Button variant="outline" type="button" disabled={pending} onClick={() => void bypassLogin()}>Continue without OTP</Button></div>}</form></CardContent></>}
+				{view === "ENROLL" && <><CardHeader><CardTitle className="text-2xl tracking-tight">Create your account</CardTitle><CardDescription>An administrator must accept your identity before issuing a verification code.</CardDescription></CardHeader><CardContent><form className="grid gap-5" onSubmit={requestEnrollment}><div className="grid gap-2"><Label htmlFor="mobile">Mobile number</Label><Input id="mobile" inputMode="numeric" autoComplete="tel-national" pattern="[6-9][0-9]{9}" minLength={10} maxLength={10} value={mobile} onChange={(event) => setMobile(event.target.value.replace(/\D/gu, "").slice(0, 10))} placeholder="9876543210" required/></div><div className="grid gap-2"><Label htmlFor="email">Email address</Label><Input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" required/></div><div className="grid gap-2"><Label htmlFor="username">Username</Label><Input id="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="vijay" required/></div><Button disabled={pending || mobile.length !== 10}>{pending && <LoaderCircle className="size-4 animate-spin"/>}{pending ? "Submitting" : "Submit for approval"}</Button><Button variant="ghost" type="button" onClick={() => setView("SIGN_IN")}>Return to sign in</Button></form></CardContent></>}
+				{view === "PENDING" && <><CardHeader><CardTitle className="text-2xl tracking-tight">Registration submitted</CardTitle><CardDescription>Your administrator will accept the identity and give you a six-digit verification code.</CardDescription></CardHeader><CardContent><Button variant="outline" onClick={() => { window.history.pushState({}, "", "/verify"); setView("VERIFY"); }}>Enter a verification code</Button></CardContent></>}
+				{view === "VERIFY" && <><CardHeader><CardTitle className="text-2xl tracking-tight">Enter your code</CardTitle><CardDescription>Enter your account identifier and the six-digit code from your administrator. It expires in 10 minutes.</CardDescription></CardHeader><CardContent><form className="grid gap-5" onSubmit={verifyOtp}><div className="grid gap-2"><Label htmlFor="verify-identifier">Account identifier</Label><Input id="verify-identifier" autoFocus value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="9876543210" required/></div><div className="grid gap-2"><Label htmlFor="otp">Verification code</Label><Input id="otp" className="h-12 text-center text-xl font-semibold tracking-[.35em]" inputMode="numeric" autoComplete="one-time-code" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/gu, "").slice(0, 6))} placeholder="000000" required/></div><Button disabled={pending || otp.length !== 6}>{pending && <LoaderCircle className="size-4 animate-spin"/>}{pending ? "Verifying" : "Verify and continue"}</Button><Button variant="ghost" type="button" onClick={() => { window.history.pushState({}, "", "/"); setView("SIGN_IN"); }}>Cancel</Button></form></CardContent></>}
 				{view === "ACCOUNT" && <><CardHeader><div className="mb-2 flex size-10 items-center justify-center rounded-full bg-neutral-900 text-white"><Check className="size-5"/></div><CardTitle className="text-2xl tracking-tight">Your identity is protected</CardTitle><CardDescription>{approvalStatus === "APPROVED" ? "Your business profile is active." : "Your business profile is waiting for administrator approval."}</CardDescription></CardHeader><CardContent className="grid gap-4"><div className="flex items-center justify-between border-t pt-4 text-sm"><span className="text-muted-foreground">Business profile</span><span className="font-medium">{approvalStatus === "APPROVED" ? "Active" : "Pending approval"}</span></div><div className="flex items-center justify-between border-t pt-4 text-sm"><span className="text-muted-foreground">Mobile verification</span><span className="font-medium">SMS pending</span></div><Button variant="outline" onClick={() => void logout()}>Sign out</Button></CardContent></>}
 				{message && <div className="mx-6 border-t pt-4 text-sm text-destructive">{message}</div>}
 			</Card>
