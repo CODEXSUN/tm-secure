@@ -25,3 +25,6 @@ Changelog label: v 1.0.1
 - Added a guarded local development bypass. It requires `NODE_ENV=development` and `AUTH_BYPASS_ENABLED=true`.
 - Added the Tech Media logo, favicon, Shadcn UI primitives, Tailwind CSS, and a neutral theme with mandatory Tech Media purple branding.
 - Added local release tooling for version checks and GitHub commit review.
+- Applied D1 migrations `0001_identity_foundation.sql` and `0002_admin_console.sql` to the production database.
+- Deployed Worker version `22384b0a-9dbc-4497-ac17-0d2fde43dfd8` to `secure.techmedia.in`.
+- Added the production `OTP_HMAC_KEY` secret. Email OTP stays unavailable until `RESEND_API_KEY` is configured.
