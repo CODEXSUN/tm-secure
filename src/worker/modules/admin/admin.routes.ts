@@ -135,7 +135,7 @@ adminRoutes.get("/audit", async (c) => {
 	return c.json({ events: result.results });
 });
 
-adminRoutes.get("/settings", (c) => c.json({ retention: { otpMinutes: 10, fullIpDays: 30, ipHashDays: 180, sessionDays: 30, securityEventDays: 730, adminAuditDays: 2555 }, security: { passwordIterations: 310000, adminSessionHours: 24, businessApprovalRequired: true, oneBusinessProfilePerUser: true } }));
+adminRoutes.get("/settings", (c) => c.json({ retention: { otpMinutes: 10, fullIpDays: 30, ipHashDays: 180, sessionDays: 30, securityEventDays: 730, adminAuditDays: 2555 }, security: { passwordIterations: 100000, adminSessionHours: 24, businessApprovalRequired: true, oneBusinessProfilePerUser: true } }));
 
 function normalizePrincipal(principal: AdminPrincipal): AdminPrincipal {
 	return { ...principal, mustChangePassword: Boolean(principal.mustChangePassword) };

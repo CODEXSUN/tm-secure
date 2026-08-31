@@ -2,11 +2,25 @@
 
 ## Version State
 
-Current version: 1.0.4
+Current version: 1.0.5
 
-Release tag: v-1.0.4
+Release tag: v-1.0.5
 
-Changelog label: v 1.0.4
+Changelog label: v 1.0.5
+
+## v-1.0.5
+
+### [v 1.0.5] 2026-09-01 - Cloudflare PBKDF2 compatibility
+
+#### Database Changes
+
+- Added migration `0004_worker_pbkdf2_limit.sql`.
+- Recreated the seeded administrator password hash with 100,000 PBKDF2 iterations.
+
+#### App Codebase Changes
+
+- Set administrator password hashing to the Cloudflare Worker limit of 100,000 PBKDF2 iterations.
+- Updated the security settings response to show the active iteration count.
 
 ## v-1.0.4
 

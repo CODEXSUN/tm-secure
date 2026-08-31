@@ -1,7 +1,7 @@
 import { createHash, createOpaqueToken, derivePassword, timingSafeEqual } from "../../shared/crypto";
 
 const ADMIN_SESSION_DAYS = 1;
-const PASSWORD_ITERATIONS = 310_000;
+const PASSWORD_ITERATIONS = 100_000;
 
 export interface AdminPrincipal {
 	id: string;
