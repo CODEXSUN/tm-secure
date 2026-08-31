@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { AdminPage, AdminPrincipal } from "../domain/types";
+import { humanize } from "./format";
 
 const pages: Array<{ id: AdminPage; label: string }> = [
 	{ id: "overview", label: "Overview" }, { id: "users", label: "Users & approvals" }, { id: "applications", label: "Applications" },
@@ -15,4 +16,4 @@ export function AdminLayout({ admin, page, onNavigate, onLogout, children }: { a
 
 export function PageIntro({ title, description, action }: { title: string; description: string; action?: ReactNode }) { return <div className="page-intro"><div><h2>{title}</h2><p>{description}</p></div>{action}</div>; }
 export function Empty({ children }: { children: ReactNode }) { return <div className="empty-state">{children}</div>; }
-export function Status({ value }: { value: string }) { return <span className={`status status--${value.toLowerCase().replaceAll("_", "-")}`}>{value.replaceAll("_", " ")}</span>; }
+export function Status({ value }: { value: string }) { return <span className={`status status--${humanize(value.toLowerCase(), "-")}`}>{humanize(value)}</span>; }

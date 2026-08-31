@@ -23,8 +23,14 @@ export class EmailService {
 			}),
 		});
 		if (!response.ok) {
-			const result = await response.json<ResendResponse>().catch(() => ({}));
-			throw new Error(result.message ?? "Email delivery failed.");
+			const result: unknown = await response.json().catch(() => null);
+			throw new Error(getResendError(result));
 		}
 	}
+}
+
+function getResendError(result: unknown): string {
+	if (typeof result !== "object" || result === null) return "Email delivery failed.";
+	const message = (result as ResendResponse).message;
+	return typeof message === "string" ? message : "Email delivery failed.";
 }
