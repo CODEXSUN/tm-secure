@@ -2,11 +2,20 @@
 
 ## Version State
 
-Current version: 1.0.1
+Current version: 1.0.2
 
-Release tag: v-1.0.1
+Release tag: v-1.0.2
 
-Changelog label: v 1.0.1
+Changelog label: v 1.0.2
+
+## v-1.0.2
+
+### [v 1.0.2] 2026-08-31 - Hostinger SMTP delivery
+
+#### App Codebase Changes
+
+- Replaced the unavailable Cloudflare Email Service sender with direct Hostinger SMTPS delivery through Cloudflare TCP sockets on port 465.
+- Added the non-secret Hostinger SMTP connection configuration to the Worker and retained the mailbox password only as the `HOSTINGER_SMTP_PASSWORD` Cloudflare secret.
 
 ## v-1.0.1
 

@@ -26,10 +26,11 @@
 			"migrations_dir": "./migrations"
 		}
 	],
-	"send_email": [
-		{
-			"name": "EMAIL",
-			"allowed_sender_addresses": ["otp@auth.techmedia.in"]
-		}
-	]
+	"vars": {
+		"HOSTINGER_SMTP_HOST": "smtp.hostinger.com",
+		"HOSTINGER_SMTP_PORT": "465",
+		"HOSTINGER_SMTP_USERNAME": "tm@codexsun.com",
+		"HOSTINGER_SMTP_FROM": "tm@codexsun.com",
+		"NODE_ENV": "production"
+	}
 }

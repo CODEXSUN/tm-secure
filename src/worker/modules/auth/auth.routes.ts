@@ -167,7 +167,13 @@ async function issueChallenge(env: Env, userId: string, destination: string, pur
 	const otpHash = await createHash(env.OTP_HMAC_KEY, `${challengeId}:${otp}`);
 	const now = new Date();
 	await env.tm_secure_db.prepare("INSERT INTO otp_challenges (id, user_id, channel, destination_hash, otp_hash, purpose, expires_at, created_at) VALUES (?, ?, 'EMAIL', ?, ?, ?, ?, ?)").bind(challengeId, userId, destinationHash, otpHash, purpose, new Date(now.getTime() + TEN_MINUTES).toISOString(), now.toISOString()).run();
-	await new EmailService(env.EMAIL).sendOtp(destination, otp);
+	await new EmailService({
+		host: env.HOSTINGER_SMTP_HOST,
+		port: env.HOSTINGER_SMTP_PORT,
+		username: env.HOSTINGER_SMTP_USERNAME,
+		password: env.HOSTINGER_SMTP_PASSWORD,
+		from: env.HOSTINGER_SMTP_FROM,
+	}).sendOtp(destination, otp);
 	return challengeId;
 }
 

@@ -1,5 +1,10 @@
 # Copy this file to .dev.vars for local development.
 # Never use production credentials in local development.
 OTP_HMAC_KEY=generate-a-long-random-development-secret
+HOSTINGER_SMTP_PASSWORD=replace-with-a-local-test-mailbox-password
+HOSTINGER_SMTP_HOST=smtp.hostinger.com
+HOSTINGER_SMTP_PORT=465
+HOSTINGER_SMTP_USERNAME=tm@codexsun.com
+HOSTINGER_SMTP_FROM=tm@codexsun.com
 NODE_ENV=development
 AUTH_BYPASS_ENABLED=true
