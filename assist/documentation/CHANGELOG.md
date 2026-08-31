@@ -2,11 +2,22 @@
 
 ## Version State
 
-Current version: 1.0.5
+Current version: 1.0.6
 
-Release tag: v-1.0.5
+Release tag: v-1.0.6
 
-Changelog label: v 1.0.5
+Changelog label: v 1.0.6
+
+## v-1.0.6
+
+### [v 1.0.6] 2026-09-01 - Mobile-first administrator verification
+
+#### App Codebase Changes
+
+- Changed sign-in and verification to accept only a 10-digit mobile number.
+- Added an auditable verification-code request before opening the code form.
+- Clarified that the administrator creates and shares the six-digit code.
+- Preserved email and username collection during new account registration.
 
 ## v-1.0.5
 

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { createHash, createOpaqueToken } from "../../shared/crypto";
-import { identify, normalizeEmail, normalizeMobile, normalizeUsername } from "../../shared/identifiers";
+import { normalizeEmail, normalizeMobile, normalizeUsername } from "../../shared/identifiers";
 import { ManualOtpService } from "./manual-otp.service";
 
 const SESSION_COOKIE = "tm_secure_session";
@@ -42,14 +42,24 @@ authRoutes.post("/enrollment/request", async (c) => {
 	}
 });
 
-authRoutes.post("/otp/request", (c) => c.json(genericOtpResponse(), 202));
+authRoutes.post("/otp/request", async (c) => {
+	const body = await c.req.json<{ mobile?: string }>();
+	try {
+		const mobile = normalizeMobile(body.mobile ?? "");
+		const user = await findUser(c.env.tm_secure_db, "MOBILE", mobile);
+		if (user) await audit(c.env, c.req.raw, user.user_id, "MANUAL_OTP_REQUESTED");
+		return c.json(genericOtpResponse(), 202);
+	} catch (error) {
+		return c.json({ error: getErrorMessage(error) }, 400);
+	}
+});
 
 authRoutes.post("/otp/verify", async (c) => {
 	const body = await c.req.json<{ identifier?: string; otp?: string }>();
 	if (!/^\d{6}$/u.test(body.otp ?? "")) return c.json({ error: "Enter the six-digit code." }, 400);
 	try {
-		const identifier = identify(body.identifier ?? "");
-		const user = await c.env.tm_secure_db.prepare("SELECT u.id AS user_id, u.status FROM users u JOIN user_identifiers i ON i.user_id = u.id WHERE i.type = ? AND i.normalized_value = ?").bind(identifier.type, identifier.value).first<UserRow>();
+		const mobile = normalizeMobile(body.identifier ?? "");
+		const user = await c.env.tm_secure_db.prepare("SELECT u.id AS user_id, u.status FROM users u JOIN user_identifiers i ON i.user_id = u.id WHERE i.type = 'MOBILE' AND i.normalized_value = ?").bind(mobile).first<UserRow>();
 		if (!user || user.status !== "ACTIVE") throw new Error("This code is invalid or expired.");
 		await new ManualOtpService(c.env).verify(user.user_id, body.otp ?? "");
 		const now = new Date().toISOString();

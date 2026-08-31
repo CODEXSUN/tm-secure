@@ -1,6 +1,6 @@
 {
 	"name": "tm-secure",
-	"version": "1.0.5",
+	"version": "1.0.6",
 	"description": "A template for building a React application with Vite, Hono, and Cloudflare Workers",
 	"cloudflare": {
 		"label": "Vite React Template",
