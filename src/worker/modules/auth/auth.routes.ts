@@ -147,7 +147,7 @@ async function hashIp(env: Env, request: Request): Promise<string> {
 }
 
 function genericOtpResponse() {
-	return { accepted: true, message: "Ask your administrator for a verification code." };
+	return { accepted: true, message: "Enter the OTP to continue." };
 }
 
 function getErrorMessage(error: unknown): string {

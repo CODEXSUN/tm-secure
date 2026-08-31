@@ -27,7 +27,12 @@ export function AdminApp() {
 
 	useEffect(() => { void adminApi.get<{ authenticated: boolean; admin?: AdminPrincipal }>("/auth/session").then((session) => { setAdmin(session.admin ?? null); if (session.admin) void loadPage(page); }).finally(() => setLoading(false)); }, [loadPage, page]);
 
-	function navigate(selected: AdminPage) { setPage(selected); window.history.pushState({}, "", selected === "overview" ? "/admin" : `/admin/${selected}`); void loadPage(selected); }
+	function navigate(selected: AdminPage) {
+		setPage(selected);
+		const route = selected === "verification-codes" ? "otp" : selected;
+		window.history.pushState({}, "", selected === "overview" ? "/admin" : `/admin/${route}`);
+		void loadPage(selected);
+	}
 	async function login(email: string, password: string) { const result = await adminApi.post<{ admin: AdminPrincipal }>("/auth/login", { email, password }); setAdmin(result.admin); setPage(result.admin.mustChangePassword ? "settings" : "overview"); await loadPage(result.admin.mustChangePassword ? "settings" : "overview"); }
 	async function logout() { await adminApi.post("/auth/logout", {}); setAdmin(null); setData(null); }
 
@@ -72,4 +77,8 @@ function renderPage(page: AdminPage, data: unknown, admin: AdminPrincipal, actio
 	}
 }
 
-function pageFromPath(): AdminPage { const value = window.location.pathname.split("/")[2]; return ["users", "verification-codes", "applications", "devices", "sessions", "audit", "settings"].includes(value) ? value as AdminPage : "overview"; }
+function pageFromPath(): AdminPage {
+	const value = window.location.pathname.split("/")[2];
+	if (value === "otp" || value === "verification-codes") return "verification-codes";
+	return ["users", "applications", "devices", "sessions", "audit", "settings"].includes(value) ? value as AdminPage : "overview";
+}

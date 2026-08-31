@@ -2,11 +2,22 @@
 
 ## Version State
 
-Current version: 1.0.6
+Current version: 1.0.7
 
-Release tag: v-1.0.6
+Release tag: v-1.0.7
 
-Changelog label: v 1.0.6
+Changelog label: v 1.0.7
+
+## v-1.0.7
+
+### [v 1.0.7] 2026-09-01 - Natural OTP entry
+
+#### App Codebase Changes
+
+- Replaced administrator-specific public text with provider-neutral OTP text.
+- Added a six-slot Shadcn OTP input with paste and keyboard support.
+- Renamed the administrator page to `OTP codes` and added the `/admin/otp` route.
+- Kept the previous `/admin/verification-codes` route compatible.
 
 ## v-1.0.6
 
