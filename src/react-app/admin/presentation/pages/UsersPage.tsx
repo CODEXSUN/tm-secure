@@ -1,0 +1,6 @@
+import type { ManagedUser } from "../../domain/types";
+import { Empty, PageIntro, Status } from "../AdminLayout";
+
+export function UsersPage({ users, onApproval }: { users: ManagedUser[]; onApproval: (id: string, status: "APPROVED" | "REJECTED" | "SUSPENDED") => void }) {
+	return <><PageIntro title="Users and business approvals" description="Approve one business profile for each verified TechMedia identity."/>{users.length ? <section className="table-wrap"><table><thead><tr><th>Identity</th><th>Mobile</th><th>Email</th><th>Profile</th><th>Created</th><th>Actions</th></tr></thead><tbody>{users.map((user) => <tr key={user.id}><td><strong>{user.username}</strong><small>{user.id.slice(0, 8)}</small></td><td>{user.mobile}</td><td>{user.email}</td><td><Status value={user.approvalStatus}/></td><td>{new Date(user.createdAt).toLocaleDateString()}</td><td className="actions"><button onClick={() => onApproval(user.id, "APPROVED")}>Approve</button><button onClick={() => onApproval(user.id, "SUSPENDED")}>Suspend</button><button onClick={() => onApproval(user.id, "REJECTED")}>Reject</button></td></tr>)}</tbody></table></section> : <Empty>No customer identities are waiting for review.</Empty>}</>;
+}

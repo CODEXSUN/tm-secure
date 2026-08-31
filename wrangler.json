@@ -8,8 +8,22 @@
 		"enabled": true
 	},
 	"upload_source_maps": true,
+	"routes": [
+		{
+			"pattern": "secure.techmedia.in",
+			"custom_domain": true
+		}
+	],
 	"assets": {
 		"directory": "./dist/client",
 		"not_found_handling": "single-page-application"
-	}
+	},
+	"d1_databases": [
+		{
+			"binding": "tm_secure_db",
+			"database_name": "tm_secure_db",
+			"database_id": "7a6a42d6-3184-49a2-9970-70bf5ee592ab",
+			"migrations_dir": "./migrations"
+		}
+	]
 }

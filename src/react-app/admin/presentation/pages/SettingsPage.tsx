@@ -1,0 +1,9 @@
+import { FormEvent, useState } from "react";
+import type { AdminPrincipal } from "../../domain/types";
+import { PageIntro } from "../AdminLayout";
+
+export function SettingsPage({ admin, onChangePassword }: { admin: AdminPrincipal; onChangePassword: (currentPassword: string, nextPassword: string) => Promise<void> }) {
+	const [message, setMessage] = useState("");
+	async function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); const data = new FormData(event.currentTarget); try { await onChangePassword(String(data.get("currentPassword")), String(data.get("nextPassword"))); setMessage("Password changed. The default credential is no longer valid."); event.currentTarget.reset(); } catch (error) { setMessage(error instanceof Error ? error.message : "Password change failed."); } }
+	return <><PageIntro title="Security settings" description="Control administrator credentials and review enforced identity policies."/><div className="settings-grid"><section className="data-panel"><h3>Administrator password</h3>{admin.mustChangePassword && <p className="warning">Change the seeded password before production use.</p>}<form className="settings-form" onSubmit={submit}><label>Current password<input type="password" name="currentPassword" required/></label><label>New password<input type="password" name="nextPassword" minLength={12} required/></label><button>Change password</button>{message && <p>{message}</p>}</form></section><section className="data-panel"><h3>Enforced policies</h3><dl><div><dt>Business profiles</dt><dd>Administrator approval required</dd></div><div><dt>Ownership</dt><dd>One profile per identity</dd></div><div><dt>Admin session</dt><dd>24 hours</dd></div><div><dt>Audit retention</dt><dd>7 years for admin actions</dd></div><div><dt>OTP lifetime</dt><dd>10 minutes</dd></div></dl></section></div></>;
+}

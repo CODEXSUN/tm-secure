@@ -1,66 +1,88 @@
-// src/App.tsx
+import { FormEvent, useEffect, useState } from "react";
+import { AdminApp } from "./admin/AdminApp";
+import { Button } from "@/react-app/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/react-app/components/ui/card";
+import { Input } from "@/react-app/components/ui/input";
+import { Label } from "@/react-app/components/ui/label";
+import { Check, LoaderCircle } from "lucide-react";
 
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import cloudflareLogo from "./assets/Cloudflare_Logo.svg";
-import honoLogo from "./assets/hono.svg";
-import "./App.css";
+type View = "SIGN_IN" | "ENROLL" | "VERIFY" | "ACCOUNT";
+interface ApiError { error?: string }
+type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "SUSPENDED";
+interface AccountSession { authenticated: boolean; approvalStatus?: ApprovalStatus }
 
 function App() {
-	const [count, setCount] = useState(0);
-	const [name, setName] = useState("unknown");
-
-	return (
-		<>
-			<div>
-				<a href="https://vite.dev" target="_blank">
-					<img src={viteLogo} className="logo" alt="Vite logo" />
-				</a>
-				<a href="https://react.dev" target="_blank">
-					<img src={reactLogo} className="logo react" alt="React logo" />
-				</a>
-				<a href="https://hono.dev/" target="_blank">
-					<img src={honoLogo} className="logo cloudflare" alt="Hono logo" />
-				</a>
-				<a href="https://workers.cloudflare.com/" target="_blank">
-					<img
-						src={cloudflareLogo}
-						className="logo cloudflare"
-						alt="Cloudflare logo"
-					/>
-				</a>
-			</div>
-			<h1>Vite + React + Hono + Cloudflare</h1>
-			<div className="card">
-				<button
-					onClick={() => setCount((count) => count + 1)}
-					aria-label="increment"
-				>
-					count is {count}
-				</button>
-				<p>
-					Edit <code>src/App.tsx</code> and save to test HMR
-				</p>
-			</div>
-			<div className="card">
-				<button
-					onClick={() => {
-						fetch("/api/")
-							.then((res) => res.json() as Promise<{ name: string }>)
-							.then((data) => setName(data.name));
-					}}
-					aria-label="get name"
-				>
-					Name from API is: {name}
-				</button>
-				<p>
-					Edit <code>worker/index.ts</code> to change the name
-				</p>
-			</div>
-			<p className="read-the-docs">Click on the logos to learn more</p>
-		</>
-	);
+	if (window.location.pathname.startsWith("/admin")) return <AdminApp />;
+	return <PublicPortal />;
 }
 
+function PublicPortal() {
+	const [view, setView] = useState<View>("SIGN_IN");
+	const [identifier, setIdentifier] = useState("");
+	const [mobile, setMobile] = useState("");
+	const [email, setEmail] = useState("");
+	const [username, setUsername] = useState("");
+	const [otp, setOtp] = useState("");
+	const [challengeId, setChallengeId] = useState("");
+	const [destination, setDestination] = useState("");
+	const [message, setMessage] = useState("");
+	const [pending, setPending] = useState(false);
+	const [developmentBypass, setDevelopmentBypass] = useState(false);
+	const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus>("PENDING");
+
+	useEffect(() => {
+		void Promise.all([
+			fetch("/api/v1/auth/session").then((response) => response.json() as Promise<AccountSession>),
+			fetch("/api/v1/auth/development/status").then((response) => response.json() as Promise<{ enabled: boolean }>),
+		]).then(([session, development]) => { if (session.authenticated) { setApprovalStatus(session.approvalStatus ?? "PENDING"); setView("ACCOUNT"); } setDevelopmentBypass(development.enabled); });
+	}, []);
+
+	async function requestLogin(event: FormEvent) {
+		event.preventDefault();
+		await run(async () => {
+			const result = await post<{ challengeId?: string; destination?: string; message?: string }>("/api/v1/auth/otp/request", { identifier });
+			if (!result.challengeId) { setMessage(result.message ?? "If the account exists, a code will be sent."); return; }
+			setChallengeId(result.challengeId); setDestination(result.destination ?? "your verified email"); setView("VERIFY");
+		});
+	}
+
+	async function requestEnrollment(event: FormEvent) {
+		event.preventDefault();
+		await run(async () => {
+			const result = await post<{ challengeId: string; destination: string }>("/api/v1/auth/enrollment/request", { mobile, email, username });
+			setChallengeId(result.challengeId); setDestination(result.destination); setView("VERIFY");
+		});
+	}
+
+	async function verifyOtp(event: FormEvent) {
+		event.preventDefault();
+		await run(async () => { const result = await post<AccountSession>("/api/v1/auth/otp/verify", { challengeId, otp }); setApprovalStatus(result.approvalStatus ?? "PENDING"); setView("ACCOUNT"); });
+	}
+
+	async function bypassLogin() {
+		await run(async () => { const result = await post<AccountSession>("/api/v1/auth/development/login", {}); setApprovalStatus(result.approvalStatus ?? "PENDING"); setView("ACCOUNT"); });
+	}
+
+	async function logout() { await post("/api/v1/auth/logout", {}); setView("SIGN_IN"); setOtp(""); setMessage(""); }
+	async function run(action: () => Promise<void>) {
+		setPending(true); setMessage("");
+		try { await action(); } catch (error) { setMessage(error instanceof Error ? error.message : "The request could not be completed."); } finally { setPending(false); }
+	}
+
+	return <div className="flex min-h-svh flex-col bg-neutral-50 text-neutral-950">
+		<header className="flex h-16 items-center border-b border-neutral-200 bg-white px-5 sm:px-8"><div className="flex items-center gap-3"><img className="h-8 w-9 object-contain" src="/logo.svg" alt="Tech Media"/><span className="text-base font-semibold tracking-tight">Tech Media</span></div></header>
+		<main className="flex flex-1 items-center justify-center p-5 sm:p-8">
+			<Card className="w-full max-w-md border-neutral-200 shadow-none" aria-live="polite">
+				{view === "SIGN_IN" && <><CardHeader><CardTitle className="text-2xl tracking-tight">Sign in</CardTitle><CardDescription>Use your 10-digit mobile number, verified email, or username. We will send the code by email.</CardDescription></CardHeader><CardContent><form className="grid gap-5" onSubmit={requestLogin}><div className="grid gap-2"><Label htmlFor="identifier">Account identifier</Label><Input id="identifier" autoFocus value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="9876543210" required/></div><Button disabled={pending}>{pending && <LoaderCircle className="size-4 animate-spin"/>}{pending ? "Sending code" : "Continue"}</Button><Button variant="ghost" type="button" onClick={() => setView("ENROLL")}>Create an account</Button>{developmentBypass && <div className="grid gap-3 border-t pt-5"><span className="text-center text-xs font-medium uppercase tracking-wider text-muted-foreground">Development only</span><Button variant="outline" type="button" disabled={pending} onClick={() => void bypassLogin()}>Continue without OTP</Button></div>}</form></CardContent></>}
+				{view === "ENROLL" && <><CardHeader><CardTitle className="text-2xl tracking-tight">Create your account</CardTitle><CardDescription>Your business profile activates after administrator confirmation. Verification codes are sent by email.</CardDescription></CardHeader><CardContent><form className="grid gap-5" onSubmit={requestEnrollment}><div className="grid gap-2"><Label htmlFor="mobile">Mobile number</Label><div className="flex"><span className="flex h-10 items-center rounded-l-md border border-r-0 border-input bg-neutral-100 px-3 text-sm text-muted-foreground">+91</span><Input id="mobile" className="rounded-l-none" inputMode="numeric" autoComplete="tel-national" pattern="[6-9][0-9]{9}" minLength={10} maxLength={10} value={mobile} onChange={(event) => setMobile(event.target.value.replace(/\D/gu, "").slice(0, 10))} placeholder="9876543210" required/></div></div><div className="grid gap-2"><Label htmlFor="email">Email address</Label><Input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" required/></div><div className="grid gap-2"><Label htmlFor="username">Username</Label><Input id="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="vijay" required/></div><Button disabled={pending || mobile.length !== 10}>{pending && <LoaderCircle className="size-4 animate-spin"/>}{pending ? "Creating account" : "Verify email"}</Button><Button variant="ghost" type="button" onClick={() => setView("SIGN_IN")}>Return to sign in</Button></form></CardContent></>}
+				{view === "VERIFY" && <><CardHeader><CardTitle className="text-2xl tracking-tight">Enter your code</CardTitle><CardDescription>We sent a six-digit code to <strong className="font-medium text-foreground">{destination}</strong>. It expires in 10 minutes.</CardDescription></CardHeader><CardContent><form className="grid gap-5" onSubmit={verifyOtp}><div className="grid gap-2"><Label htmlFor="otp">Verification code</Label><Input id="otp" className="h-12 text-center text-xl font-semibold tracking-[.35em]" inputMode="numeric" autoComplete="one-time-code" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/gu, "").slice(0, 6))} placeholder="000000" required/></div><Button disabled={pending || otp.length !== 6}>{pending && <LoaderCircle className="size-4 animate-spin"/>}{pending ? "Verifying" : "Verify and continue"}</Button><Button variant="ghost" type="button" onClick={() => setView("SIGN_IN")}>Cancel</Button></form></CardContent></>}
+				{view === "ACCOUNT" && <><CardHeader><div className="mb-2 flex size-10 items-center justify-center rounded-full bg-neutral-900 text-white"><Check className="size-5"/></div><CardTitle className="text-2xl tracking-tight">Your identity is protected</CardTitle><CardDescription>{approvalStatus === "APPROVED" ? "Your business profile is active." : "Your business profile is waiting for administrator approval."}</CardDescription></CardHeader><CardContent className="grid gap-4"><div className="flex items-center justify-between border-t pt-4 text-sm"><span className="text-muted-foreground">Business profile</span><span className="font-medium">{approvalStatus === "APPROVED" ? "Active" : "Pending approval"}</span></div><div className="flex items-center justify-between border-t pt-4 text-sm"><span className="text-muted-foreground">Mobile verification</span><span className="font-medium">SMS pending</span></div><Button variant="outline" onClick={() => void logout()}>Sign out</Button></CardContent></>}
+				{message && <div className="mx-6 border-t pt-4 text-sm text-destructive">{message}</div>}
+			</Card>
+		</main>
+		<footer className="flex items-center justify-between px-5 py-4 text-xs text-muted-foreground sm:px-8"><span>© 2026 Tech Media</span><span>Secure identity service</span></footer>
+	</div>;
+}
+
+async function post<T = unknown>(url: string, body: object): Promise<T> { const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const result = await response.json() as T & ApiError; if (!response.ok) throw new Error(result.error ?? "The request could not be completed."); return result; }
 export default App;
