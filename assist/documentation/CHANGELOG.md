@@ -15,6 +15,7 @@ Changelog label: v 1.0.4
 #### App Codebase Changes
 
 - Added the Worker asset fallback for direct `/admin` and `/verify` navigation.
+- Cloned asset responses so the security-header middleware can safely update their headers.
 - Preserved the account identifier when the user opens the verification page from sign-in.
 
 ## v-1.0.3
