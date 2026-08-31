@@ -38,7 +38,7 @@ function PublicPortal() {
 	async function requestLogin(event: FormEvent) {
 		event.preventDefault();
 		window.history.pushState({}, "", "/verify");
-		setIdentifier(""); setView("VERIFY");
+		setView("VERIFY");
 	}
 
 	async function requestEnrollment(event: FormEvent) {

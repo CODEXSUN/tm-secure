@@ -2,11 +2,20 @@
 
 ## Version State
 
-Current version: 1.0.3
+Current version: 1.0.4
 
-Release tag: v-1.0.3
+Release tag: v-1.0.4
 
-Changelog label: v 1.0.3
+Changelog label: v 1.0.4
+
+## v-1.0.4
+
+### [v 1.0.4] 2026-09-01 - Direct SPA route support
+
+#### App Codebase Changes
+
+- Added the Worker asset fallback for direct `/admin` and `/verify` navigation.
+- Preserved the account identifier when the user opens the verification page from sign-in.
 
 ## v-1.0.3
 

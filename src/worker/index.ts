@@ -18,5 +18,6 @@ app.use("*", secureHeaders({
 app.get("/api/v1/health", (c) => c.json({ service: "tm-secure", status: "ok" }));
 app.route("/api/v1/auth", authRoutes);
 app.route("/api/v1/admin", adminRoutes);
+app.get("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 
 export default app;
