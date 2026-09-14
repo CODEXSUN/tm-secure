@@ -111,6 +111,11 @@ export class LicenseService {
 		if ((result.meta.changes ?? 0) !== 1) throw new LicenseRequestError("LICENSE_NOT_FOUND", "The license was not found.", 404);
 	}
 
+	async archive(licenseId: string): Promise<void> {
+		const result = await this.env.tm_secure_db.prepare("DELETE FROM desktop_licenses WHERE id = ?").bind(licenseId).run();
+		if ((result.meta.changes ?? 0) !== 1) throw new LicenseRequestError("LICENSE_NOT_FOUND", "The license was not found.", 404);
+	}
+
 	async activate(input: { appId: string; licenseKey: string; machineId: string; machineLabel?: string }, request: Request): Promise<LicenseActivation> {
 		await this.enforceRateLimit(request);
 		const appId = normalizeAppId(input.appId);

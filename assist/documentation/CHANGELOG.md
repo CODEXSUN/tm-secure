@@ -2,11 +2,26 @@
 
 ## Version State
 
-Current version: 1.0.8
+Current version: 1.0.9
 
-Release tag: v-1.0.8
+Release tag: v-1.0.9
 
-Changelog label: v 1.0.8
+Changelog label: v 1.0.9
+
+## v-1.0.9
+
+### [v 1.0.9] 2026-09-14 2:47 pm - Archive issued desktop licenses
+
+#### Database Changes
+
+- Database update: No (manual).
+
+#### App Codebase Changes
+
+- Added an `Archive` action to each issued desktop license row.
+- Added a confirmation that states the current action permanently removes the license.
+- Added the protected `/admin/licenses/:id/archive` endpoint and administrator audit event.
+- Kept license event history after the license record is removed.
 
 ## v-1.0.8
 

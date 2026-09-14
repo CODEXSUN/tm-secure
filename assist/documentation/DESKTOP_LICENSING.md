@@ -18,6 +18,8 @@ The full key appears once. The database stores an HMAC hash and the last four di
 
 An administrator can revoke a license or reset its machine binding. Reset invalidates the existing license token.
 
+The **Archive** action permanently removes the license record in version 1.0.9. License event and administrator audit history remain available. A later migration can change this action to soft archive without changing the administrator route.
+
 ## Desktop Installation ID
 
 Create one random UUID during the first application start. Store it in the operating system protected application storage.

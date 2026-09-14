@@ -50,6 +50,7 @@ export function AdminApp() {
 		issueLicense: async (applicationId) => { const result = await adminApi.post<IssuedDesktopLicense>("/licenses", { applicationId }); await loadPage("licenses"); return result; },
 		revokeLicense: async (id) => { await adminApi.post(`/licenses/${id}/revoke`, {}); await loadPage("licenses"); },
 		resetLicense: async (id) => { await adminApi.post(`/licenses/${id}/reset`, {}); await loadPage("licenses"); },
+		archiveLicense: async (id) => { await adminApi.post(`/licenses/${id}/archive`, {}); await loadPage("licenses"); },
 	});
 
 	return <AdminLayout admin={admin} page={page} onNavigate={navigate} onLogout={() => void logout()}>{error ? <p className="admin-error">{error}</p> : content}</AdminLayout>;
@@ -71,6 +72,7 @@ interface Actions {
 	issueLicense: (applicationId: string) => Promise<IssuedDesktopLicense>;
 	revokeLicense: (id: string) => Promise<void>;
 	resetLicense: (id: string) => Promise<void>;
+	archiveLicense: (id: string) => Promise<void>;
 }
 
 function renderPage(page: AdminPage, data: unknown, admin: AdminPrincipal, actions: Actions) {
@@ -79,7 +81,7 @@ function renderPage(page: AdminPage, data: unknown, admin: AdminPrincipal, actio
 		case "users": return <UsersPage users={(data as { users?: ManagedUser[] } | null)?.users ?? []} onApproval={(id, status) => void actions.approve(id, status)}/>;
 		case "verification-codes": return <VerificationCodesPage users={(data as { users?: ManagedUser[] } | null)?.users ?? []} onIssue={actions.issueCode}/>;
 		case "applications": return <ApplicationsPage applications={(data as { applications?: ManagedApplication[] } | null)?.applications ?? []} onCreate={actions.createApp}/>;
-		case "licenses": return <DesktopLicensesPage data={data as DesktopLicenseSnapshot | null} onRegisterApplication={actions.registerLicensedApp} onIssue={actions.issueLicense} onRevoke={actions.revokeLicense} onReset={actions.resetLicense}/>;
+		case "licenses": return <DesktopLicensesPage data={data as DesktopLicenseSnapshot | null} onRegisterApplication={actions.registerLicensedApp} onIssue={actions.issueLicense} onRevoke={actions.revokeLicense} onReset={actions.resetLicense} onArchive={actions.archiveLicense}/>;
 		case "devices": return <DevicesPage devices={(data as { devices?: ManagedDevice[] } | null)?.devices ?? []}/>;
 		case "sessions": return <SessionsPage sessions={(data as { sessions?: ManagedSession[] } | null)?.sessions ?? []} onRevoke={(id) => void actions.revoke(id)}/>;
 		case "audit": return <AuditPage events={(data as { events?: AuditEvent[] } | null)?.events ?? []}/>;
