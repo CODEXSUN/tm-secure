@@ -66,6 +66,11 @@ td small { padding-top: 3px; color: var(--muted-foreground); }
 .manual-code { display: grid; justify-items: start; gap: 5px; border: 1px solid #d8c5e5; border-radius: calc(var(--radius) + 2px); padding: 18px; margin-bottom: 16px; color: #3f2451; background: #faf7fc; }
 .manual-code strong { font-size: 32px; letter-spacing: .16em; }
 .manual-code small { color: var(--muted-foreground); }
+.license-key { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.license-section { display: flex; flex-direction: column; gap: 12px; padding-top: 24px; }
+.license-section h3 { margin: 0; font-size: 15px; }
+.license-app-form { grid-template-columns: 1fr 1fr auto; }
+.actions .license-generate { color: #662c90; border-color: #b88ed1; }
 .data-panel dl { display: flex; flex-direction: column; margin: 0; }
 .data-panel dl div { display: flex; justify-content: space-between; gap: 20px; border-top: 1px solid var(--border); padding: 12px 0; }
 .data-panel dl div:first-child { border: 0; }

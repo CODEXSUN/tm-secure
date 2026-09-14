@@ -2,11 +2,30 @@
 
 ## Version State
 
-Current version: 1.0.7
+Current version: 1.0.8
 
-Release tag: v-1.0.7
+Release tag: v-1.0.8
 
-Changelog label: v 1.0.7
+Changelog label: v 1.0.8
+
+## v-1.0.8
+
+### [v 1.0.8] 2026-09-14 - One-machine desktop licensing
+
+#### Database Changes
+
+- Added migration `0005_desktop_licensing.sql` for licensed applications, desktop licenses, and license events.
+- Stored only HMAC hashes for license keys, machine IDs, activation tokens, and IP addresses.
+
+#### App Codebase Changes
+
+- Added 16-digit numeric license generation with one-time full-key display.
+- Added one-machine activation, same-machine recovery, online validation, revocation, and machine reset.
+- Added rejected-attempt rate limiting and duplicate-machine responses.
+- Added the `Desktop licenses` administrator page and `/admin/licenses` route.
+- Added the desktop integration contract in `assist/documentation/DESKTOP_LICENSING.md`.
+- Updated the Cloudflare Vite plugin and Wrangler toolchain for the current Worker runtime.
+- Updated the Worker compatibility date to 2026-09-14.
 
 ## v-1.0.7
 

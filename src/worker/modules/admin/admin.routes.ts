@@ -1,7 +1,8 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { AdminAuthService, type AdminPrincipal } from "./admin-auth.service";
 import { ManualOtpService } from "../auth/manual-otp.service";
+import { LicenseRequestError, LicenseService } from "../licenses/license.service";
 
 const ADMIN_COOKIE = "tm_secure_admin";
 type Variables = { admin: AdminPrincipal };
@@ -114,6 +115,53 @@ adminRoutes.post("/applications", async (c) => {
 	return c.json({ created: true }, 201);
 });
 
+adminRoutes.get("/licenses", async (c) => {
+	return c.json(await new LicenseService(c.env).adminSnapshot());
+});
+
+adminRoutes.post("/licenses/applications", async (c) => {
+	try {
+		const body = await c.req.json<{ appId?: string; name?: string }>();
+		await new LicenseService(c.env).registerApplication(c.get("admin").id, body.appId ?? "", body.name ?? "");
+		await new AdminAuthService(c.env).audit(c.get("admin").id, "LICENSED_APPLICATION_CREATED", c.req.raw, { appId: body.appId?.trim().toLowerCase() });
+		return c.json({ created: true }, 201);
+	} catch (error) {
+		return adminLicenseError(c, error);
+	}
+});
+
+adminRoutes.post("/licenses", async (c) => {
+	try {
+		const body = await c.req.json<{ applicationId?: string }>();
+		const issued = await new LicenseService(c.env).issue(c.get("admin").id, body.applicationId ?? "");
+		await new AdminAuthService(c.env).audit(c.get("admin").id, "DESKTOP_LICENSE_ISSUED", c.req.raw, { licenseId: issued.licenseId, applicationId: body.applicationId });
+		c.header("Cache-Control", "no-store");
+		return c.json(issued, 201);
+	} catch (error) {
+		return adminLicenseError(c, error);
+	}
+});
+
+adminRoutes.post("/licenses/:id/revoke", async (c) => {
+	try {
+		await new LicenseService(c.env).revoke(c.req.param("id"));
+		await new AdminAuthService(c.env).audit(c.get("admin").id, "DESKTOP_LICENSE_REVOKED", c.req.raw, { licenseId: c.req.param("id") });
+		return c.json({ revoked: true });
+	} catch (error) {
+		return adminLicenseError(c, error);
+	}
+});
+
+adminRoutes.post("/licenses/:id/reset", async (c) => {
+	try {
+		await new LicenseService(c.env).reset(c.req.param("id"));
+		await new AdminAuthService(c.env).audit(c.get("admin").id, "DESKTOP_LICENSE_RESET", c.req.raw, { licenseId: c.req.param("id") });
+		return c.json({ reset: true });
+	} catch (error) {
+		return adminLicenseError(c, error);
+	}
+});
+
 adminRoutes.get("/devices", async (c) => {
 	const result = await c.env.tm_secure_db.prepare("SELECT d.id, d.label, d.platform, d.trust_status AS trustStatus, d.first_seen_at AS firstSeenAt, d.last_seen_at AS lastSeenAt, i.display_value AS user FROM registered_devices d LEFT JOIN user_identifiers i ON i.user_id = d.user_id AND i.type = 'USERNAME' ORDER BY d.last_seen_at DESC LIMIT 200").all();
 	return c.json({ devices: result.results });
@@ -144,3 +192,8 @@ function isMutation(method: string): boolean { return !["GET", "HEAD", "OPTIONS"
 function isTrustedOrigin(request: Request): boolean { const origin = request.headers.get("origin"); return !origin || new URL(origin).host === new URL(request.url).host; }
 function value(result: D1Result): number { return Number((result.results[0] as { value?: number } | undefined)?.value ?? 0); }
 function message(error: unknown): string { return error instanceof Error ? error.message : "The request could not be completed."; }
+function adminLicenseError(c: Context<{ Bindings: Env; Variables: Variables }>, error: unknown) {
+	if (error instanceof LicenseRequestError) return c.json({ error: error.message }, error.status);
+	console.error(JSON.stringify({ message: "administrator license request failed", error: message(error) }));
+	return c.json({ error: "The license request could not be completed." }, 500);
+}
