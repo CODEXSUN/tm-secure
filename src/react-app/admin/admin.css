@@ -42,7 +42,8 @@ td small { padding-top: 3px; color: var(--muted-foreground); }
 .actions button, .danger-action { border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); padding: 6px 8px; color: var(--foreground); background: var(--card); font-size: 12px; }
 .actions button:hover { color: #662c90; border-color: #b88ed1; background: #faf7fc; }
 .actions button:last-child, .danger-action { color: #b42318; border-color: #fecdca; }
-.status { display: inline-flex; border-radius: 999px; padding: 5px 8px; color: #52525b; background: #f4f4f5; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.status { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 5px 8px; color: #52525b; background: #f4f4f5; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.status > svg { width: 13px; height: 13px; color: #15803d; stroke-width: 2.5; }
 .status--approved, .status--active, .status--trusted { color: #662c90; background: #f3eaf8; }
 .status--pending, .status--pending-admin-approval { color: #52525b; background: #f4f4f5; }
 .status--rejected, .status--revoked, .status--suspended { color: #b42318; background: #fef3f2; }

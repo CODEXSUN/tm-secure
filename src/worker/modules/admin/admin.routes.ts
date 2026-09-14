@@ -172,6 +172,28 @@ adminRoutes.post("/licenses/:id/archive", async (c) => {
 	}
 });
 
+adminRoutes.post("/licenses/:id/serial", async (c) => {
+	try {
+		const result = await new LicenseService(c.env).revealSerial(c.req.param("id"));
+		await new AdminAuthService(c.env).audit(c.get("admin").id, "DESKTOP_LICENSE_SERIAL_REVEALED", c.req.raw, { licenseId: c.req.param("id") });
+		c.header("Cache-Control", "no-store");
+		return c.json(result);
+	} catch (error) {
+		return adminLicenseError(c, error);
+	}
+});
+
+adminRoutes.post("/licenses/:id/reactivate", async (c) => {
+	try {
+		const result = await new LicenseService(c.env).prepareReactivation(c.req.param("id"));
+		await new AdminAuthService(c.env).audit(c.get("admin").id, "DESKTOP_LICENSE_REACTIVATED", c.req.raw, { licenseId: c.req.param("id") });
+		c.header("Cache-Control", "no-store");
+		return c.json(result);
+	} catch (error) {
+		return adminLicenseError(c, error);
+	}
+});
+
 adminRoutes.get("/devices", async (c) => {
 	const result = await c.env.tm_secure_db.prepare("SELECT d.id, d.label, d.platform, d.trust_status AS trustStatus, d.first_seen_at AS firstSeenAt, d.last_seen_at AS lastSeenAt, i.display_value AS user FROM registered_devices d LEFT JOIN user_identifiers i ON i.user_id = d.user_id AND i.type = 'USERNAME' ORDER BY d.last_seen_at DESC LIMIT 200").all();
 	return c.json({ devices: result.results });

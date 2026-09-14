@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CircleCheck } from "lucide-react";
 import type { AdminPage, AdminPrincipal } from "../domain/types";
 import { humanize } from "./format";
 
@@ -16,4 +17,7 @@ export function AdminLayout({ admin, page, onNavigate, onLogout, children }: { a
 
 export function PageIntro({ title, description, action }: { title: string; description: string; action?: ReactNode }) { return <div className="page-intro"><div><h2>{title}</h2><p>{description}</p></div>{action}</div>; }
 export function Empty({ children }: { children: ReactNode }) { return <div className="empty-state">{children}</div>; }
-export function Status({ value }: { value: string }) { return <span className={`status status--${humanize(value.toLowerCase(), "-")}`}>{humanize(value)}</span>; }
+export function Status({ value }: { value: string }) {
+	const available = value.toUpperCase() === "AVAILABLE";
+	return <span className={`status status--${humanize(value.toLowerCase(), "-")}`}>{available && <CircleCheck aria-hidden="true"/>}{humanize(value)}</span>;
+}

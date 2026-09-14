@@ -1,5 +1,6 @@
 import { createHash, createOpaqueToken, timingSafeEqual } from "../../shared/crypto";
 import { createLicenseKey, formatLicenseKey, normalizeLicenseKey, normalizeMachineId } from "./license-key";
+import { decryptLicenseKey, encryptLicenseKey } from "./license-vault";
 
 const APP_ID_PATTERN = /^[a-z0-9-]{3,64}$/u;
 const LICENSE_TOKEN_PREFIX = "tml_";
@@ -46,6 +47,12 @@ export interface DesktopLicenseSummary {
 	activatedAt: string | null;
 	lastValidatedAt: string | null;
 	revokedAt: string | null;
+	serialAvailable: number;
+}
+
+interface StoredLicenseKey {
+	license_key_ciphertext: string | null;
+	license_key_iv: string | null;
 }
 
 export class LicenseRequestError extends Error {
@@ -60,7 +67,7 @@ export class LicenseService {
 	async adminSnapshot(): Promise<{ applications: LicensedApplicationSummary[]; licenses: DesktopLicenseSummary[] }> {
 		const [applications, licenses] = await Promise.all([
 			this.env.tm_secure_db.prepare("SELECT id, app_id AS appId, name, status, created_at AS createdAt FROM licensed_applications ORDER BY created_at DESC").all<LicensedApplicationSummary>(),
-			this.env.tm_secure_db.prepare("SELECT l.id, a.app_id AS appId, a.name AS applicationName, l.license_key_last_four AS lastFour, l.status, l.machine_label AS machineLabel, l.issued_at AS issuedAt, l.activated_at AS activatedAt, l.last_validated_at AS lastValidatedAt, l.revoked_at AS revokedAt FROM desktop_licenses l JOIN licensed_applications a ON a.id = l.application_id ORDER BY l.issued_at DESC").all<DesktopLicenseSummary>(),
+			this.env.tm_secure_db.prepare("SELECT l.id, a.app_id AS appId, a.name AS applicationName, l.license_key_last_four AS lastFour, l.status, l.machine_label AS machineLabel, l.issued_at AS issuedAt, l.activated_at AS activatedAt, l.last_validated_at AS lastValidatedAt, l.revoked_at AS revokedAt, CASE WHEN l.license_key_ciphertext IS NOT NULL AND l.license_key_iv IS NOT NULL THEN 1 ELSE 0 END AS serialAvailable FROM desktop_licenses l JOIN licensed_applications a ON a.id = l.application_id ORDER BY l.issued_at DESC").all<DesktopLicenseSummary>(),
 		]);
 		return { applications: applications.results, licenses: licenses.results };
 	}
@@ -86,9 +93,10 @@ export class LicenseService {
 			const licenseKey = createLicenseKey();
 			const licenseId = crypto.randomUUID();
 			const now = new Date().toISOString();
+			const encrypted = await encryptLicenseKey(this.env.OTP_HMAC_KEY, licenseKey);
 			try {
-				await this.env.tm_secure_db.prepare("INSERT INTO desktop_licenses (id, application_id, license_key_hash, license_key_last_four, status, issued_by, issued_at, updated_at) VALUES (?, ?, ?, ?, 'AVAILABLE', ?, ?, ?)")
-					.bind(licenseId, application.id, await this.hashLicenseKey(licenseKey), licenseKey.slice(-4), adminId, now, now).run();
+				await this.env.tm_secure_db.prepare("INSERT INTO desktop_licenses (id, application_id, license_key_hash, license_key_last_four, license_key_ciphertext, license_key_iv, status, issued_by, issued_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'AVAILABLE', ?, ?, ?)")
+					.bind(licenseId, application.id, await this.hashLicenseKey(licenseKey), licenseKey.slice(-4), encrypted.ciphertext, encrypted.iv, adminId, now, now).run();
 				return { licenseKey: formatLicenseKey(licenseKey), licenseId };
 			} catch (error) {
 				if (!isUniqueConstraint(error)) throw error;
@@ -114,6 +122,16 @@ export class LicenseService {
 	async archive(licenseId: string): Promise<void> {
 		const result = await this.env.tm_secure_db.prepare("DELETE FROM desktop_licenses WHERE id = ?").bind(licenseId).run();
 		if ((result.meta.changes ?? 0) !== 1) throw new LicenseRequestError("LICENSE_NOT_FOUND", "The license was not found.", 404);
+	}
+
+	async revealSerial(licenseId: string): Promise<{ licenseKey: string }> {
+		return { licenseKey: formatLicenseKey(await this.decryptStoredLicenseKey(licenseId)) };
+	}
+
+	async prepareReactivation(licenseId: string): Promise<{ licenseKey: string }> {
+		const licenseKey = await this.decryptStoredLicenseKey(licenseId);
+		await this.reset(licenseId);
+		return { licenseKey: formatLicenseKey(licenseKey) };
 	}
 
 	async activate(input: { appId: string; licenseKey: string; machineId: string; machineLabel?: string }, request: Request): Promise<LicenseActivation> {
@@ -186,6 +204,13 @@ export class LicenseService {
 	private async findByKey(appId: string, licenseKey: string): Promise<LicenseRow | null> {
 		return this.env.tm_secure_db.prepare("SELECT l.id, l.application_id, a.app_id, a.name AS application_name, l.status, l.machine_hash, l.machine_label, l.activation_token_hash, l.issued_at, l.activated_at, l.last_validated_at FROM desktop_licenses l JOIN licensed_applications a ON a.id = l.application_id WHERE l.license_key_hash = ? AND a.app_id = ? AND a.status = 'ACTIVE'")
 			.bind(await this.hashLicenseKey(licenseKey), appId).first<LicenseRow>();
+	}
+
+	private async decryptStoredLicenseKey(licenseId: string): Promise<string> {
+		const stored = await this.env.tm_secure_db.prepare("SELECT license_key_ciphertext, license_key_iv FROM desktop_licenses WHERE id = ?").bind(licenseId).first<StoredLicenseKey>();
+		if (!stored) throw new LicenseRequestError("LICENSE_NOT_FOUND", "The license was not found.", 404);
+		if (!stored.license_key_ciphertext || !stored.license_key_iv) throw new LicenseRequestError("SERIAL_NOT_RECOVERABLE", "This serial was issued before secure recovery was enabled.", 409);
+		return decryptLicenseKey(this.env.OTP_HMAC_KEY, { ciphertext: stored.license_key_ciphertext, iv: stored.license_key_iv });
 	}
 
 	private async recordEvent(applicationId: string | null, licenseId: string | null, eventType: string, machineHash: string | null, request: Request, details: object): Promise<void> {

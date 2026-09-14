@@ -14,9 +14,15 @@ The activation key is not the permanent digital license. A successful activation
 4. Copy the displayed 16-digit key.
 5. Give the key to the customer.
 
-The full key appears once. The database stores an HMAC hash and the last four digits only.
+The database stores an HMAC hash for activation lookup. It also stores an AES-256-GCM encrypted copy for authorized administrator recovery.
+
+Licenses issued before version 1.0.10 have no encrypted copy. Their original full serials cannot be recovered from the HMAC hash.
 
 An administrator can revoke a license or reset its machine binding. Reset invalidates the existing license token.
+
+The **Copy serial** action decrypts and copies a recoverable serial. The **Reactivate** action clears the machine binding and token, then returns the same serial for another activation.
+
+Do not rotate `OTP_HMAC_KEY` without a planned license-key migration. The secret protects both activation lookups and encrypted serial recovery.
 
 The **Archive** action permanently removes the license record in version 1.0.9. License event and administrator audit history remain available. A later migration can change this action to soft archive without changing the administrator route.
 

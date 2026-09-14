@@ -2,11 +2,27 @@
 
 ## Version State
 
-Current version: 1.0.9
+Current version: 1.0.10
 
-Release tag: v-1.0.9
+Release tag: v-1.0.10
 
-Changelog label: v 1.0.9
+Changelog label: v 1.0.10
+
+## v-1.0.10
+
+### [v 1.0.10] 2026-09-14 4:22 pm - Add recoverable license reactivation
+
+#### Database Changes
+
+- Added migration `0006_recoverable_license_serials.sql` for encrypted serial recovery.
+
+#### App Codebase Changes
+
+- Added AES-256-GCM encrypted serial storage while keeping the HMAC hash as the activation lookup.
+- Added audited `Copy serial` and `Reactivate` actions for newly issued licenses.
+- Added five-second live refresh while the desktop license page is visible.
+- Added a green check indicator to the `Available` license status.
+- Kept older licenses valid, but marked their unrecoverable serial actions as unavailable.
 
 ## v-1.0.9
 
